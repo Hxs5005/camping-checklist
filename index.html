@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>露營裝備清單</title>
-<meta name="description" content="6 人・2 帳的露營裝備分工：公共裝備與炊具認領、成員篩選、個人行李打勾，用分享連結傳給大家。">
+<meta name="description" content="6 人・2 帳的露營裝備確認清單：出發倒數、公共裝備、炊具與個人行李打勾，進度一直固定在畫面上方。">
 <meta name="theme-color" content="#ffffff">
 
 <!-- 分享預覽（LINE、Facebook 等）。部署後建議把 og:image 改成完整網址，例如 https://你的帳號.github.io/camping-checklist/og-image.png -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="露營裝備清單">
-<meta property="og:description" content="公共裝備與炊具認領、個人行李打勾，出發前一起確認。">
+<meta property="og:description" content="出發倒數＋公共裝備、炊具、個人行李打勾，出發前一起確認。">
 <meta property="og:image" content="og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 
@@ -26,7 +26,623 @@
 <body>
 <div id="camp-app"></div>
 <noscript><p class="noscript">這份露營清單需要開啟 JavaScript 才能顯示。</p></noscript>
-<script src="data.js"></script>
-<script src="app.js"></script>
+<!-- 清單內容：要改項目或出發日期改這一段 -->
+<script>
+/*
+ * 露營裝備清單｜清單內容
+ * 要換成別的行程或改出發日期，只要改這一段。
+ *
+ * 規則：
+ * - 每個項目的 id 不可以重複（勾選紀錄靠 id 記住）
+ * - **文字** 會顯示成粗體
+ * - 改了某項的 id，那一項原本的勾選紀錄就會消失
+ */
+window.CAMP_DATA = {
+  title: '露營裝備清單',
+  subtitle: '出發前一起打勾',
+  people: 6,
+  tents: 2,
+
+  // 出發日期（年-月-日），用來倒數天數
+  startDate: '2026-11-14',
+
+  // 開場的三張貼紙
+  stickers: ['6 人小隊', '2 頂帳篷', '山區夜晚會冷'],
+
+  // 跑馬燈
+  tags: ['#帳篷搭起來', '#客廳帳遮雨', '#卡式爐開伙', '#營燈點起來', '#桌遊撲克牌', '#頭燈別忘了', '#山區夜晚保暖', '#保冷袋冰磚'],
+
+  // 公共裝備：打勾＝已備妥
+  shared: [
+    { id: 's1', name: '帳篷＋營柱、營釘、營繩', note: '2 帳，各自確認配件完整' },
+    { id: 's2', name: '地布、防潮墊', note: '每帳 1 組' },
+    { id: 's3', name: '營槌、拔釘器', note: '1～2 組' },
+    { id: 's4', name: '客廳帳', note: '公共遮雨用' },
+    { id: 's5', name: '露營桌', note: '共 6 人用，依桌面大小安排' },
+    { id: 's6', name: '露營椅', note: '**6 張**，可各自帶' },
+    { id: 's7', name: '營燈、掛鉤', note: '兩帳及公共區照明' },
+    { id: 's8', name: '戶外用延長線', note: '先確認營區插座位置' },
+    { id: 's9', name: '**吹風機**', note: '1 支，先確認營區可使用' },
+    { id: 's10', name: '打氣機', note: '使用充氣床才需要' },
+    { id: 's11', name: '衛生紙、濕紙巾', note: '共用' },
+    { id: 's12', name: '垃圾袋、回收袋', note: '各數個' },
+    { id: 's13', name: '飲用水', note: '6 人份，依營區飲水設備調整' },
+    { id: 's14', name: '保冷袋＋冰磚', note: '運送需冷藏的食物，到營區再放冰箱' },
+    { id: 's15', name: '急救包', note: '1 組' },
+    { id: 's16', name: '桌遊、撲克牌', note: '自由認領' }
+  ],
+
+  // 炊具：tag 可用「炊具」「備料」「清潔」（其他文字也可以，會用炊具的顏色）
+  cook: [
+    { id: 'c1', tag: '炊具', name: '卡式爐＋適用瓦斯罐', note: '依菜單準備，確認餘量' },
+    { id: 'c2', tag: '炊具', name: '鍋子、平底鍋、鍋蓋', note: '依菜單挑選' },
+    { id: 'c3', tag: '炊具', name: '鍋鏟、夾子、湯勺', note: '1 組' },
+    { id: 'c4', tag: '備料', name: '刀、砧板、料理剪刀', note: '1 組' },
+    { id: 'c5', tag: '清潔', name: '洗碗精、海綿、抹布', note: '1 組' }
+  ],
+
+  // 個人行李
+  me: [
+    { id: 'p1', name: '睡袋、睡墊／棉被枕頭／充氣床、枕頭', note: '充氣床記得帶打氣機' },
+    { id: 'p2', name: '保暖外套、長褲、厚襪', note: '山區夜晚保暖用' },
+    { id: 'p3', name: '毛帽、備用毯', note: '怕冷的人加帶' },
+    { id: 'p4', name: '換洗衣物、內衣褲', note: '另備一套乾衣服' },
+    { id: 'p5', name: '雨衣、防水外套', note: '雨傘可另外帶' },
+    { id: 'p6', name: '拖鞋', note: '' },
+    { id: 'p7', name: '毛巾、盥洗用品、牙刷', note: '用小袋集中裝' },
+    { id: 'p8', name: '碗、筷、湯匙、杯子', note: '建議可重複使用' },
+    { id: 'p9', name: '水壺／保溫瓶', note: '裝熱水很方便' },
+    { id: 'p10', name: '手機、充電線、行動電源', note: '出發前充飽' },
+    { id: 'p11', name: '頭燈／手電筒', note: '晚上走路、上廁所用' },
+    { id: 'p12', name: '個人藥品、防蚊用品、防曬', note: '有過敏藥也記得帶' }
+  ],
+
+  // 出發前先問營區
+  asks: [
+    { id: 'q1', title: '插座位置', sub: '戶外用延長線' },
+    { id: 'q2', title: '能不能用吹風機', sub: '吹風機 1 支' },
+    { id: 'q3', title: '飲水設備', sub: '飲用水 6 人份再調整' }
+  ]
+};
+</script>
+<!-- 互動程式 -->
+<script>
+/*
+ * 露營裝備清單｜互動邏輯
+ * 不需要後端：所有勾選都存在瀏覽器 localStorage，只在這台裝置。
+ * 出發日期在上方清單內容的 startDate 設定。
+ */
+(() => {
+  'use strict';
+
+  const D = window.CAMP_DATA;
+  const app = document.getElementById('camp-app');
+  if (!app) return;
+  if (!D) { app.textContent = '清單內容讀取失敗，請檢查 index.html 裡 CAMP_DATA 那一段的格式（逗號、引號、括號）。'; return; }
+
+  /* ---------- 清單資料 ---------- */
+  const PEOPLE = parseInt(D.people, 10) || 0;
+  const TENTS = parseInt(D.tents, 10) || 0;
+  const TITLE = D.title || '露營裝備清單';
+  const SHARED = (D.shared || []).map(o => Object.assign({}, o, { kind: 'shared' }));
+  const COOK = (D.cook || []).map(o => Object.assign({}, o, { kind: 'cook' }));
+  const ME = (D.me || []).map(o => Object.assign({}, o, { kind: 'me' }));
+  const ASKS = (D.asks || []).slice();
+  const ALL = SHARED.concat(COOK);
+  const ITEM = {};
+  SHARED.concat(COOK, ME).forEach(o => { ITEM[o.id] = o; });
+  const ASK_IDS = new Set(ASKS.map(a => a.id));
+  const TAGC = { '炊具': 'pot', '備料': 'prep', '清潔': 'wash' };
+  const TAGS = (D.tags && D.tags.length) ? D.tags : ['#露營'];
+  const STICKERS = (D.stickers && D.stickers.length) ? D.stickers : [];
+  const WD = ['日', '一', '二', '三', '四', '五', '六'];
+  const META = [PEOPLE ? PEOPLE + ' 人' : '', TENTS ? TENTS + ' 帳' : ''].filter(Boolean).join('・');
+  /* 同一個 github.io 網域下的其他專案共用 localStorage，所以用網址路徑區分 */
+  const NS = 'camp:' + location.pathname + ':';
+  const KEY_SHARED = NS + 'shared-v1', KEY_ME = NS + 'me-v1';
+
+  /* ---------- 小工具 ---------- */
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const rich = s => esc(s || '').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const plain = s => String(s || '').replace(/\*\*/g, '');
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 無法儲存時只留在這次瀏覽 */ } }
+  };
+
+  /* ---------- 倒數 ---------- */
+  function parseDate(s) {
+    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(s || '').trim());
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const START = parseDate(D.startDate);
+  const md = d => (d.getMonth() + 1) + '/' + d.getDate();
+  function today0() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function daysLeft() { return START ? Math.round((START - today0()) / 86400000) : null; }
+  function countdownLine() {
+    const n = daysLeft();
+    if (n === null) return '';
+    const when = md(START) + '（' + WD[START.getDay()] + '）';
+    if (n > 0) return when + '出發・還有 ' + n + ' 天';
+    if (n === 0) return when + '今天出發';
+    return when + '已出發';
+  }
+
+  /* ---------- 狀態：公共＋炊具＋營區確認，個人行李分開存 ---------- */
+  function loadDone() {
+    const src = store.get(KEY_SHARED, null), o = {};
+    const d = src && typeof src === 'object' && src.done && typeof src.done === 'object' ? src.done : {};
+    Object.keys(d).forEach(k => { if (d[k] === true && ((ITEM[k] && ITEM[k].kind !== 'me') || ASK_IDS.has(k))) o[k] = true; });
+    return o;
+  }
+  let DONE = loadDone();
+  let MINE = store.get(KEY_ME, {});
+  if (!MINE || typeof MINE !== 'object' || Array.isArray(MINE)) MINE = {};
+  const saveDone = () => store.set(KEY_SHARED, { v: 2, done: DONE, updated: Date.now() });
+  const saveMine = () => store.set(KEY_ME, MINE);
+  const isDone = it => (it.kind === 'me' ? !!MINE[it.id] : !!DONE[it.id]);
+  let copyTab = 'team';
+  const rowEls = {};
+
+  /* ---------- 圖示與插圖 ---------- */
+  const IC = {
+    tent: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 20.5 12 4l9.5 16.5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 20.5V15l-3.4 5.5M12 15l3.4 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>',
+    bag: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 9.5a5.5 5.5 0 0 1 11 0V21h-11Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9.5 4.5h5M9.5 14h5v4h-5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>',
+    check: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  const FIRE = gid => '<g class="fire"><ellipse class="glow" cx="0" cy="-6" rx="58" ry="22" fill="url(#' + gid + ')"/><path class="fl" d="M0-46c12 14 17 23 10 35-3 6-17 6-20 0C-17-23-11-32 0-46Z" fill="#ffd23f"/><path class="fl f2" d="M-1-32c8 9 10 15 5 22-2 4-10 4-12 0-4-7 1-13 7-22Z" fill="#ff7a3c"/><path d="M-26 3 24-9M-26-9 24 3" stroke="#6e3b1f" stroke-width="7" stroke-linecap="round"/></g>';
+  const GLOW = id => '<radialGradient id="' + id + '"><stop offset="0" stop-color="#ffd23f" stop-opacity=".95"/><stop offset=".5" stop-color="#ff9a3c" stop-opacity=".45"/><stop offset="1" stop-color="#ff9a3c" stop-opacity="0"/></radialGradient>';
+  const SCENE = '<svg viewBox="0 0 1200 300" preserveAspectRatio="xMidYMax slice" focusable="false">'
+    + '<defs><radialGradient id="g-sun" cx="50%" cy="42%" r="58%"><stop offset="0" stop-color="#fffbe2"/><stop offset=".55" stop-color="#ffe680"/><stop offset="1" stop-color="#ffd23f"/></radialGradient>' + GLOW('g-glow')
+    + '<symbol id="pine" viewBox="0 0 40 70"><path d="M20 0 33 22h-6l10 19h-7l10 21H0l10-21H3l10-19H7Z"/><path d="M17 61h6v9h-6Z"/></symbol></defs>'
+    + '<g class="l-sun"><g class="sun-in"><circle cx="770" cy="148" r="74" fill="url(#g-sun)"/></g></g>'
+    + '<g class="l-far"><path fill="#b4497c" d="M0 196 90 150 170 172 262 108 352 158 446 102 552 166 648 118 756 160 858 92 958 146 1060 110 1200 158V300H0Z"/></g>'
+    + '<g class="l-mid" fill="#5b2d6b"><path d="M0 226 118 178 226 206 338 160 466 214 594 166 716 218 846 170 978 214 1098 180 1200 204V300H0Z"/>'
+    + '<use href="#pine" x="196" y="168" width="24" height="42"/><use href="#pine" x="222" y="176" width="18" height="32"/><use href="#pine" x="900" y="172" width="24" height="42"/><use href="#pine" x="926" y="182" width="18" height="32"/><use href="#pine" x="1010" y="176" width="22" height="38"/></g>'
+    + '<g class="l-front" fill="#163232"><path fill="#1f3c3c" d="M0 252 140 236 300 244 470 240 640 243 800 236 980 246 1200 238V300H0Z"/>'
+    + '<use href="#pine" x="40" y="198" width="30" height="52"/><use href="#pine" x="78" y="212" width="22" height="38"/><use href="#pine" x="318" y="196" width="28" height="50"/><use href="#pine" x="350" y="210" width="20" height="35"/><use href="#pine" x="384" y="202" width="24" height="42"/><use href="#pine" x="812" y="190" width="30" height="52"/><use href="#pine" x="846" y="206" width="22" height="38"/><use href="#pine" x="878" y="198" width="26" height="46"/><use href="#pine" x="1090" y="194" width="30" height="52"/><use href="#pine" x="1126" y="208" width="22" height="38"/>'
+    + '<g transform="translate(470 241)"><path d="M0-50 46 0H-46Z" fill="#e0452f"/><path d="M0-50 13 0H-13Z" fill="#9f2a1b"/><path d="M0-50 46 0" stroke="#15171a" stroke-width="3" fill="none"/></g>'
+    + '<g transform="translate(575 242)"><path d="M0-38 36 0H-36Z" fill="#ffd23f"/><path d="M0-38 10 0H-10Z" fill="#c98a12"/></g>'
+    + '<path d="M724 244V196M724 198h14" stroke="#163232" stroke-width="4" fill="none" stroke-linecap="round"/><circle class="glow" cx="738" cy="212" r="30" fill="url(#g-glow)"/><rect x="732" y="203" width="12" height="17" rx="3" fill="#fff3b0"/>'
+    + '<g transform="translate(660 246)">' + FIRE('g-glow') + '</g></g></svg>';
+
+  /* ---------- 版面 ---------- */
+  function rowHTML(it) {
+    const id = esc(it.id);
+    const tag = it.tag ? '<span class="tag tag-' + (TAGC[it.tag] || 'pot') + '">' + esc(it.tag) + '</span>' : '';
+    const note = it.note ? '<span class="nt">' + rich(it.note) + '</span>' : '';
+    return '<li class="row rv ' + it.kind + '" data-id="' + id + '"><label class="hit" for="ck-' + id + '"><input type="checkbox" class="ck-in" id="ck-' + id + '" data-id="' + id + '"><span class="box">' + IC.check + '</span><span class="txt">' + tag + '<span class="nm">' + rich(it.name) + '</span>' + note + '</span></label></li>';
+  }
+
+  function appHTML() {
+    const tagRun = TAGS.map(t => '<span>' + esc(t) + '</span>').join('');
+    const nS = SHARED.length, nC = COOK.length, nM = ME.length, nA = ALL.length;
+    const tagline = ['CAMPING CHECKLIST', PEOPLE ? PEOPLE + ' PEOPLE' : '', TENTS ? TENTS + ' TENTS' : ''].filter(Boolean).join(' · ');
+    return `
+<nav class="nav${START ? '' : ' no-cd'}" aria-label="倒數與進度"><div class="wrap">
+  <a class="cd-chip" id="cd-chip" href="#top"${START ? '' : ' hidden'}><b id="cd-chip-n"></b><small id="cd-chip-d"></small></a>
+  <a class="brand" href="#top">${IC.tent}<span>露營清單</span></a>
+  <div class="nav-links"><a href="#overview">進度</a><a href="#shared">公共裝備</a><a href="#cook">炊具</a><a href="#me">個人</a><a href="#share">貼到群組</a></div>
+  <div class="prog">
+    <a class="pg pg-s" id="pg-s" href="#shared"><span class="pg-l">${IC.tent}<span>公共</span></span><span class="pg-t"><i id="pg-s-bar"></i></span><b class="pg-n" id="pg-s-n">0/${nA}</b></a>
+    <a class="pg pg-m" id="pg-m" href="#me"><span class="pg-l">${IC.bag}<span>行李</span></span><span class="pg-t"><i id="pg-m-bar"></i></span><b class="pg-n" id="pg-m-n">0/${nM}</b></a>
+  </div>
+</div></nav>
+<header class="hero" id="top">
+  <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="veil"></i>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="tagline enter">${esc(tagline)}</p>
+      <h1 class="enter" style="--d:.06s"><span class="big">${esc(TITLE)}</span><span class="name">${esc(D.subtitle || '出發前一起打勾')}</span></h1>
+      <p class="lede enter" style="--d:.12s">公共裝備、炊具和個人行李分三區，一項一項打勾確認。勾選會存在這台裝置。</p>
+      <div class="cta enter" style="--d:.18s"><a class="btn solid" href="#shared">公共裝備</a><a class="btn" href="#me">我的行李</a></div>
+    </div>
+    <div class="cd-wrap"${START ? '' : ' hidden'}>
+      <div class="cd-card enter">
+        <span class="cd-k">距離出發</span>
+        <b class="cd-big" id="cd-big"></b>
+        <p class="cd-sub" id="cd-sub"></p>
+        <div class="week" id="week" aria-hidden="true"></div>
+      </div>
+      ${STICKERS.slice(0, 3).map((t, i) => '<span class="stk s' + (i + 1) + ' enter" style="--d:' + (.55 + i * .15).toFixed(2) + 's">' + esc(t) + '</span>').join('')}
+    </div>
+  </div>
+  <div class="scene" aria-hidden="true">${SCENE}</div>
+</header>
+<div class="tagwrap" aria-hidden="true"><div class="tagband"><div class="tagtrack">${tagRun}${tagRun}${tagRun}</div></div></div>
+<main>
+  <section id="overview" class="band ov fx">
+    <canvas class="topo" data-c="#11624a" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <div class="head rv"><span class="label">OVERVIEW</span><h2>一眼看<em class="hi">進度</em></h2></div>
+      <div class="bento">
+        <a class="tile t-leaf span2 rv" href="#shared"><span class="tk">公共裝備・${nS} 樣</span><span class="tb"><span id="t-shared">0</span><small>/${nS} 備妥</small></span><span class="ts" id="t-shared-r"></span><span class="tbar"><i id="tb-shared"></i></span></a>
+        <a class="tile t-sun rv" href="#cook"><span class="tk">炊具・${nC} 樣</span><span class="tb"><span id="t-cook">0</span><small>/${nC}</small></span><span class="ts" id="t-cook-r"></span><span class="tbar"><i id="tb-cook"></i></span></a>
+        <a class="tile t-night rv" href="#me"><span class="tk">我的行李・${nM} 樣</span><span class="tb"><span id="t-me">0</span><small>/${nM}</small></span><span class="ts" id="t-me-r"></span><span class="tbar"><i id="tb-me"></i></span></a>
+        ${ASKS.length ? '<div class="tile t-coral span2 ask rv"><span class="tk">出發前先問營區</span><div class="asks" id="asks"></div></div>' : ''}
+      </div>
+    </div>
+  </section>
+  <section id="shared" class="band sec-shared fx">
+    <div class="deco" aria-hidden="true"><i class="forest f-back"></i><i class="forest f-front"></i></div>
+    <div class="wrap">
+      <div class="head rv"><span class="label">SHARED GEAR · ${nS}</span><h2>公共<em class="hi">裝備</em></h2><p class="lead">打勾代表已經準備好。</p></div>
+      <div class="secbar rv"><span class="track"><i class="fill" id="sf-shared"></i></span><b id="sb-shared">0/${nS} 備妥</b></div>
+      <ul class="list two">${SHARED.map(rowHTML).join('')}</ul>
+    </div>
+  </section>
+  <section id="cook" class="band sec-cook fx">
+    <div class="deco" aria-hidden="true"><i class="ember e1"></i><i class="ember e2"></i><i class="ember e3"></i></div>
+    <div class="wrap">
+      <div class="head rv"><span class="label">KITCHEN · ${nC}</span><h2>炊具<em class="hi">確認</em></h2><p class="lead">卡式爐、瓦斯罐和鍋具依菜單準備。</p></div>
+      <div class="secbar rv"><span class="track"><i class="fill" id="sf-cook"></i></span><b id="sb-cook">0/${nC} 備妥</b></div>
+      <ul class="list two">${COOK.map(rowHTML).join('')}</ul>
+    </div>
+  </section>
+  <section id="me" class="band sec-me fx">
+    <div class="deco" aria-hidden="true"><i class="starfield"></i><i class="moon"></i></div>
+    <div class="wrap">
+      <div class="head rv"><span class="label">MY BAG · ${nM}</span><h2>個人<em class="hi">要帶什麼</em></h2><p class="lead">每個人自己的行李清單。</p></div>
+      <div class="secbar rv"><span class="track"><i class="fill" id="sf-me"></i></span><b id="sb-me">0/${nM} 打勾</b></div>
+      <ul class="list two">${ME.map(rowHTML).join('')}</ul>
+      <div class="cheer" id="cheer" hidden>${IC.check}<span>行李到齊，可以出發了</span></div>
+    </div>
+  </section>
+  <section id="share" class="band share">
+    <div class="wrap narrow">
+      <div class="head rv"><span class="label">SHARE</span><h2>貼到<em class="hi">群組</em></h2><p class="lead">把目前的勾選狀態複製成文字，貼進 LINE 群組。</p></div>
+      <div class="copy-card rv">
+        <div class="seg" role="tablist" aria-label="選擇要複製的內容"><button type="button" role="tab" id="tab-team" aria-selected="true" aria-controls="copy-ta">公共清單</button><button type="button" role="tab" id="tab-me" aria-selected="false" aria-controls="copy-ta">我的行李</button></div>
+        <textarea id="copy-ta" readonly rows="10" aria-label="要複製的文字"></textarea>
+        <div class="copy-act"><button type="button" class="btn solid" id="copy-btn">複製文字</button><button type="button" class="btn" id="text-share" hidden>用分享選單傳送</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="foot">
+  <svg class="ridge" viewBox="0 0 1200 72" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 0H1200V24L1104 50 1000 28 884 56 760 22 640 48 520 20 400 52 282 26 160 46 62 24 0 38Z"/></svg>
+  <div class="stars" id="stars" aria-hidden="true"></div>
+  <div class="wrap foot-in">
+    <svg class="fire-s" viewBox="-64 -58 128 76" aria-hidden="true" focusable="false"><defs>${GLOW('g-glow2')}</defs>${FIRE('g-glow2')}</svg>
+    <p class="foot-t">${esc(TITLE)}${META ? '｜' + META : ''}</p>
+    <p class="foot-m" id="foot-cd"></p>
+    <p class="foot-m">勾選只存在這台裝置的瀏覽器</p>
+    <div class="foot-act"><button type="button" class="btn ghost" id="reset-team">清除公共勾選</button><button type="button" class="btn ghost" id="reset-me">清除行李勾選</button></div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>`;
+  }
+
+  /* ---------- 畫面更新 ---------- */
+  function setText(sel, v) { const el = $(sel); if (el && el.textContent !== String(v)) el.textContent = v; }
+  function setV(sel, v) { const el = $(sel); if (el) el.style.setProperty('--v', Math.max(0, Math.min(1, v || 0)).toFixed(4)); }
+  function counts() {
+    return {
+      sd: SHARED.filter(i => DONE[i.id]).length,
+      cd: COOK.filter(i => DONE[i.id]).length,
+      md: ME.filter(i => MINE[i.id]).length
+    };
+  }
+  const left = (done, total, word) => (total && done >= total ? word : '還差 ' + (total - done) + ' 樣');
+
+  function renderCountdown() {
+    const n = daysLeft();
+    if (n === null) return;
+    const chipN = $('#cd-chip-n'), big = $('#cd-big');
+    const label = n > 0 ? 'D-' + n : n === 0 ? 'D-Day' : '已出發';
+    const zh = n < 0;
+    if (chipN.textContent !== label) { chipN.textContent = label; big.textContent = label; }
+    chipN.classList.toggle('zh', zh);
+    big.classList.toggle('zh', zh);
+    setText('#cd-chip-d', md(START) + ' 出發');
+    $('#cd-chip').setAttribute('aria-label', countdownLine() + '，回到最上面');
+    setText('#cd-sub', countdownLine());
+    setText('#foot-cd', countdownLine());
+    const week = $('#week');
+    if (n >= 1 && n <= 9) {
+      const t0 = today0();
+      let h = '';
+      for (let i = 0; i <= n; i++) {
+        const d = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + i);
+        const cls = i === 0 ? ' today' : i === n ? ' go' : '';
+        h += '<span class="day' + cls + '">' + (i === 0 ? '今天' : i === n ? '出發' : WD[d.getDay()]) + '<b>' + d.getDate() + '</b></span>';
+      }
+      if (week._h !== h) { week.innerHTML = h; week._h = h; week.style.setProperty('--n', n + 1); }
+      week.hidden = false;
+    } else week.hidden = true;
+  }
+
+  function renderAsks() {
+    const box = $('#asks');
+    if (!box) return;
+    if (!box.childElementCount) {
+      box.innerHTML = ASKS.map(a => '<button type="button" class="ask-b" data-ask="' + esc(a.id) + '" aria-pressed="false"><span class="abox">' + IC.check + '</span><span class="at"><b>' + esc(a.title) + '</b><small>' + esc(a.sub || '') + '</small></span></button>').join('');
+    }
+    $$('.ask-b', box).forEach(b => {
+      const on = !!DONE[b.dataset.ask];
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function teamText() {
+    const c = counts(), L = ['⛺ ' + TITLE + (META ? '（' + META + '）' : '')];
+    const cd = countdownLine();
+    if (cd) L.push(cd);
+    const mark = id => (DONE[id] ? '☑ ' : '☐ ');
+    L.push('', '【公共裝備】已備妥 ' + c.sd + '/' + SHARED.length);
+    SHARED.forEach(it => L.push(mark(it.id) + plain(it.name) + (it.note ? '｜' + plain(it.note) : '')));
+    L.push('', '【炊具】已備妥 ' + c.cd + '/' + COOK.length);
+    COOK.forEach(it => L.push(mark(it.id) + (it.tag ? it.tag + '：' : '') + plain(it.name) + (it.note ? '｜' + plain(it.note) : '')));
+    if (ASKS.length) {
+      L.push('', '【出發前先問營區】');
+      ASKS.forEach(a => L.push(mark(a.id) + a.title + (a.sub ? '（' + a.sub + '）' : '')));
+    }
+    return L.join('\n');
+  }
+  function meText() {
+    const L = ['🎒 個人要帶什麼（' + counts().md + '/' + ME.length + '）'];
+    ME.forEach(it => L.push((MINE[it.id] ? '☑ ' : '☐ ') + plain(it.name) + (it.note ? '（' + plain(it.note) + '）' : '')));
+    return L.join('\n');
+  }
+  function renderCopy() { const ta = $('#copy-ta'), v = copyTab === 'team' ? teamText() : meText(); if (ta.value !== v) ta.value = v; }
+
+  function updateAll() {
+    SHARED.concat(COOK, ME).forEach(it => {
+      const li = rowEls[it.id];
+      if (!li) return;
+      const done = isDone(it);
+      li.classList.toggle('done', done);
+      const inp = li.querySelector('.ck-in');
+      inp.checked = done;
+      inp.setAttribute('aria-label', plain(it.name));
+    });
+    const c = counts(), nA = ALL.length, nM = ME.length, d = c.sd + c.cd;
+    setText('#pg-s-n', d + '/' + nA); setV('#pg-s-bar', nA ? d / nA : 0);
+    setText('#pg-m-n', c.md + '/' + nM); setV('#pg-m-bar', nM ? c.md / nM : 0);
+    $('#pg-s').classList.toggle('full', nA > 0 && d === nA);
+    $('#pg-m').classList.toggle('full', nM > 0 && c.md === nM);
+    $('#pg-s').setAttribute('aria-label', '公共裝備與炊具已備妥 ' + d + '/' + nA);
+    $('#pg-m').setAttribute('aria-label', '我的行李已打勾 ' + c.md + '/' + nM);
+    setText('#t-shared', c.sd); setText('#t-shared-r', left(c.sd, SHARED.length, '全部備妥')); setV('#tb-shared', SHARED.length ? c.sd / SHARED.length : 0);
+    setText('#t-cook', c.cd); setText('#t-cook-r', left(c.cd, COOK.length, '全部備妥')); setV('#tb-cook', COOK.length ? c.cd / COOK.length : 0);
+    setText('#t-me', c.md); setText('#t-me-r', left(c.md, nM, '全部打勾')); setV('#tb-me', nM ? c.md / nM : 0);
+    setText('#sb-shared', c.sd + '/' + SHARED.length + ' 備妥'); setV('#sf-shared', SHARED.length ? c.sd / SHARED.length : 0);
+    setText('#sb-cook', c.cd + '/' + COOK.length + ' 備妥'); setV('#sf-cook', COOK.length ? c.cd / COOK.length : 0);
+    setText('#sb-me', c.md + '/' + nM + ' 打勾'); setV('#sf-me', nM ? c.md / nM : 0);
+    $('#cheer').hidden = !nM || c.md < nM;
+    renderAsks();
+    renderCopy();
+  }
+
+  /* ---------- 小動畫 ---------- */
+  let toastT = 0;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+  function pop(id) {
+    const li = rowEls[id];
+    if (!li || reduce) return;
+    li.classList.remove('pop');
+    void li.offsetWidth;
+    li.classList.add('pop');
+    setTimeout(() => li.classList.remove('pop'), 700);
+  }
+  function confetti() {
+    if (reduce) return;
+    const cv = document.createElement('canvas');
+    cv.className = 'confetti';
+    document.body.appendChild(cv);
+    const W = innerWidth, H = innerHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const g = cv.getContext('2d');
+    if (!g) { cv.remove(); return; }
+    g.scale(dpr, dpr);
+    const cols = ['#ffd23f', '#ff9a3c', '#e0452f', '#c42b67', '#2bb673', '#0fb3c7', '#2a62f0'];
+    const P = Array.from({ length: 140 }, () => ({
+      x: W / 2 + (Math.random() - .5) * W * .4, y: H * .38,
+      vx: (Math.random() - .5) * 13, vy: -Math.random() * 13 - 5,
+      s: 6 + Math.random() * 6, r: Math.random() * 6.28, vr: (Math.random() - .5) * .3,
+      c: cols[Math.floor(Math.random() * cols.length)], dot: Math.random() < .3
+    }));
+    const t0 = performance.now(), LIFE = 2600;
+    const frame = t => {
+      const el = t - t0;
+      g.clearRect(0, 0, W, H);
+      g.globalAlpha = Math.max(0, 1 - el / LIFE);
+      for (const p of P) {
+        p.vy += .34; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c;
+        if (p.dot) { g.beginPath(); g.arc(0, 0, p.s / 2, 0, 6.283); g.fill(); } else g.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+        g.restore();
+      }
+      if (el < LIFE) requestAnimationFrame(frame); else cv.remove();
+    };
+    requestAnimationFrame(frame);
+  }
+  function celebrate(msg) { toast(msg); confetti(); }
+
+  /* ---------- 互動 ---------- */
+  function setTab(t) {
+    copyTab = t;
+    $('#tab-team').setAttribute('aria-selected', String(t === 'team'));
+    $('#tab-me').setAttribute('aria-selected', String(t === 'me'));
+    renderCopy();
+  }
+  async function copyText(btn) {
+    const ta = $('#copy-ta'), txt = ta.value;
+    let ok = false;
+    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(txt); ok = true; } } catch (e) { ok = false; }
+    if (!ok) {
+      ta.focus(); ta.select();
+      try { ta.setSelectionRange(0, txt.length); ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    }
+    if (ok) {
+      btn.textContent = '已複製';
+      setTimeout(() => { btn.textContent = '複製文字'; }, 1800);
+      toast('已複製，可以貼到 LINE 群組');
+    } else toast('已幫你選取文字，長按就能複製');
+  }
+  async function shareText() {
+    try { await navigator.share({ text: $('#copy-ta').value }); }
+    catch (e) { if (!e || e.name !== 'AbortError') toast('沒辦法開啟分享選單，改用「複製文字」'); }
+  }
+  function twoStep(btn, label, run) {
+    if (!btn._arm) {
+      btn.textContent = '再按一次確認';
+      btn._arm = setTimeout(() => { btn._arm = 0; btn.textContent = label; }, 3000);
+      return;
+    }
+    clearTimeout(btn._arm);
+    btn._arm = 0;
+    btn.textContent = label;
+    run();
+  }
+
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.classList || !t.classList.contains('ck-in')) return;
+    const it = ITEM[t.dataset.id];
+    if (!it) return;
+    const c0 = counts();
+    if (it.kind === 'me') { if (t.checked) MINE[it.id] = true; else delete MINE[it.id]; saveMine(); }
+    else { if (t.checked) DONE[it.id] = true; else delete DONE[it.id]; saveDone(); }
+    pop(it.id);
+    updateAll();
+    if (!t.checked) return;
+    const c1 = counts();
+    if (it.kind === 'me' && c0.md === ME.length - 1 && c1.md === ME.length) celebrate('行李到齊，可以出發了');
+    if (it.kind !== 'me' && c0.sd + c0.cd === ALL.length - 1 && c1.sd + c1.cd === ALL.length) celebrate('公共裝備和炊具全部備妥');
+  });
+
+  document.addEventListener('click', e => {
+    const b = e.target instanceof Element ? e.target.closest('button') : null;
+    if (!b) return;
+    if (b.classList.contains('ask-b')) {
+      const id = b.dataset.ask;
+      if (DONE[id]) delete DONE[id]; else DONE[id] = true;
+      saveDone();
+      updateAll();
+      return;
+    }
+    switch (b.id) {
+      case 'copy-btn': copyText(b); break;
+      case 'text-share': shareText(); break;
+      case 'tab-team': setTab('team'); break;
+      case 'tab-me': setTab('me'); break;
+      case 'reset-team': twoStep(b, '清除公共勾選', () => { DONE = {}; saveDone(); updateAll(); toast('已清除公共裝備、炊具和營區確認的勾選'); }); break;
+      case 'reset-me': twoStep(b, '清除行李勾選', () => { MINE = {}; saveMine(); updateAll(); toast('已清除你的行李勾選'); }); break;
+      default: break;
+    }
+  });
+
+  /* ---------- 捲動特效、背景 ---------- */
+  function setupScrollFx() {
+    if (reduce) return;
+    const hero = $('.hero'), fx = $$('.fx');
+    let tick = false;
+    const run = () => {
+      tick = false;
+      const vh = innerHeight;
+      const hr = hero.getBoundingClientRect();
+      if (hr.bottom > -50) hero.style.setProperty('--p', Math.min(1, Math.max(0, -hr.top / Math.max(1, hr.height))).toFixed(4));
+      for (const el of fx) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < -60 || r.top > vh + 60) continue;
+        el.style.setProperty('--sp', Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height))).toFixed(4));
+      }
+    };
+    addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(run); } }, { passive: true });
+    addEventListener('resize', run);
+    run();
+  }
+  function setupReveal() {
+    if (reduce || !('IntersectionObserver' in window)) return;
+    const vh = innerHeight;
+    const io = new IntersectionObserver(entries => {
+      let k = 0;
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        en.target.style.setProperty('--d', (Math.min(k++, 6) * .06).toFixed(2) + 's');
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+      }
+    }, { threshold: 0 });
+    $$('.rv').forEach(el => { if (el.getBoundingClientRect().top > vh * .9) io.observe(el); });
+  }
+  function drawTopo(cv) {
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const g = cv.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = cv.getAttribute('data-c') || '#11624a';
+    g.lineWidth = 1.2;
+    let seed = 11;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const hills = Math.max(3, Math.round((w * h) / 120000));
+    for (let k = 0; k < hills; k++) {
+      const cx = rnd() * w, cy = rnd() * h, base = 26 + rnd() * 26, rings = 6 + Math.floor(rnd() * 5);
+      const a1 = rnd() * 6.28, a2 = rnd() * 6.28, f1 = 2 + Math.floor(rnd() * 2), f2 = 4 + Math.floor(rnd() * 3);
+      for (let r = 1; r <= rings; r++) {
+        const R = r * base * .55 + 10;
+        g.beginPath();
+        for (let s = 0; s <= 80; s++) {
+          const t = (s / 80) * Math.PI * 2;
+          const m = 1 + .16 * Math.sin(f1 * t + a1 + r * .3) + .07 * Math.sin(f2 * t + a2);
+          const x = cx + Math.cos(t) * R * m * 1.3, y = cy + Math.sin(t) * R * m * .85;
+          if (s) g.lineTo(x, y); else g.moveTo(x, y);
+        }
+        g.closePath();
+        g.stroke();
+      }
+    }
+  }
+  function setupTopo() {
+    const cvs = $$('canvas.topo'), draw = () => cvs.forEach(drawTopo);
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw).catch(() => {});
+    let lw = innerWidth, rt = 0;
+    addEventListener('resize', () => { if (innerWidth === lw) return; lw = innerWidth; clearTimeout(rt); rt = setTimeout(draw, 200); });
+  }
+  function setupStars() {
+    let seed = 5, h = '';
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 46; i++) h += '<i style="left:' + (rnd() * 100).toFixed(1) + '%;top:' + (16 + rnd() * 70).toFixed(1) + '%;--s:' + (1 + rnd() * 2.2).toFixed(1) + 'px;--d:' + (-rnd() * 3).toFixed(2) + 's"></i>';
+    $('#stars').innerHTML = h;
+  }
+
+  /* ---------- 啟動 ---------- */
+  app.innerHTML = appHTML();
+  $$('.row').forEach(li => { rowEls[li.dataset.id] = li; });
+  setupStars();
+  if (navigator.share) $('#text-share').hidden = false;
+  renderCountdown();
+  updateAll();
+  setupScrollFx();
+  setupReveal();
+  setupTopo();
+  /* 跨過午夜時更新倒數 */
+  setInterval(renderCountdown, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderCountdown(); });
+  /* 舊版的分享連結（#s=…）已停用，打開時直接清掉 */
+  if (location.hash.indexOf('#s=') === 0) { try { history.replaceState(null, '', location.href.split('#')[0]); } catch (e) { /* 略過 */ } }
+  /* 直接開某一段的網址（例如 #me）時，內容生成後再捲過去 */
+  const h0 = location.hash.slice(1);
+  if (h0 && h0.indexOf('s=') !== 0) { const t = document.getElementById(h0); if (t) t.scrollIntoView(); }
+})();
+</script>
 </body>
 </html>
